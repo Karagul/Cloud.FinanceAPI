@@ -1,0 +1,57 @@
+# cassandara in kubernetes
+
+#
+gcloud container clusters create cassandra --num-nodes=3 --machine-type "n1-standard-2" --zone europe-west2-b
+#
+wget -O cassandra-peer-service.yml http://tinyurl.com/yyxnephy
+wget -O cassandra-service.yml http://tinyurl.com/y65czz8e
+wget -O cassandra-replication-controller.yml http://tinyurl.com/y2crfs18
+#
+kubectl create -f cassandra-peer-service.yml
+kubectl create -f cassandra-service.yml
+kubectl create -f cassandra-replication-controller.yml
+# check single container running
+kubectl get pods -l name=cassandra
+# scale up to three nodes
+kubectl scale rc cassandra --replicas=3
+# check if ring correctly formed [replace with node name]
+kubectl exec -it [cassandra-24bgm] -- nodetool status
+#(SKIP) upload data from local file onto gcloud [figure out how]
+#wget -O users.csv https://tinyurl.com/knasdoans
+#(SKIP) copy data onto cassandra node
+#docker cp users.csv cassandra-24bgm:/home/users.csv
+# execute cassandra cluster
+kubectl exec -it cassandra-24bgm cqlsh
+# define node replication settings
+CREATE KEYSPACE data WITH REPLICATION = {'class':'SimpleStrategy','replication_factor':2};
+# create table for storing user data
+CREATE TABLE data.users (name text PRIMARY KEY, password text, age int);
+
+# gcloud deployment code
+mkdir myapp2 && cd myapp2
+nano Dockerfile
+nano requirements.text
+nano config.py
+nano FinanceAPI.py
+mkdir instance && cd instance
+nano config.py
+cd ..
+
+export PROJECT_ID="$(gcloud config get-value project -q)"
+docker build -t gcr.io/${PROJECT_ID}/myapp2:v1
+# check if image created
+docker images
+# push to private repository
+gcloud auth configure-docker
+docker push gcr.io/${PROJECT_ID}/myapp2:v1
+# run container "locally"
+#docker run --rm -p 8080:8080 grc.io/${PROJECT_ID}/myapp2:v1 .
+#run as a service and expose to externa IP address
+kubectl run myapp2 --image=gcr.io/${PROJECT_ID}/myapp2:v1 --port 8080
+kubectl expose deployment myapp2 --type=LoadBalancer --port 80 --target-port 8080
+
+---
+
+https
+config file
+access gcloud cassandra

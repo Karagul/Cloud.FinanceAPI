@@ -1,0 +1,16 @@
+pip>=9.0.1
+
+Flask==0.12.2
+
+
+requests
+
+socketIO_client
+
+cassandra-driver
+
+passlib
+
+itsdangerous
+
+Flask-HTTPAuth
